@@ -1,0 +1,132 @@
+---
+title : "Mapas con Leaflet"
+output:
+  flexdashboard::flex_dashboard:
+    storyboard: true
+orientation: columns
+vertical_layout: fill
+theme: lumen
+---
+
+```{r ConfiguiracionBasica, include=FALSE}
+# Carguemos paquetes de R
+library(flexdashboard)
+library(tidyverse)
+library(leaflet)
+library(readxl)
+library(leaflet.providers)
+library(sf)
+
+```
+
+Mapa Basico 
+================================================================================
+
+Column {data-width= 200}
+--------------------------------------------------------------------------------
+**Leaflet** Es una libreria de javascript usada para aplicaciones de mapas,Entre
+sus propiedades basicas es que permite las operaciones de panning y zoom asi 
+como la agregacion de capas.
+
+
+Column
+--------------------------------------------------------------------------------
+Ciudades con las de un millon de habitantes 
+
+```{r Carga de datos y primer mapa}
+setwd("C:/Users/percy/Downloads/USB/EP - Visualizacion de datos/EXAMEN/Examen_EPC")
+poblacion <- read_excel("poblacion.xlsx")
+
+# Eliminemos las observaciones con NA // Lima
+poblacion <- poblacion %>% 
+    drop_na()
+
+poblacion %>% 
+  filter(benef > 1000) %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addCircles(label = ~paste("", dist))
+
+```
+
+OpenTopoMap
+================================================================================
+
+Usemos el proveedor OpenTopoMap
+
+```{r OpenTopoMap_provider}
+poblacion %>% 
+  filter(benef > 1000000) %>% 
+  leaflet() %>% 
+  addProviderTiles(providers$OpenTopoMap) %>% 
+  addCircleMarkers(radius = ~benef/1000000,
+                   label = ~dist,
+                   color = "white",
+                   opacity = 0.6,
+                   fill = TRUE,
+                   fillColor = "blue",
+                   fillOpacity = 0.9, 
+                   popup = ~paste("Ciudad : ", dist,
+                                  "\n",
+                                  "Poblacion :", benef))
+
+```
+
+CartoDB
+================================================================================
+
+```{r}
+
+m <- leaflet() %>% 
+  setView(0,0,2.5)
+
+CartoDB <-  providers %>% 
+  purrr::keep(~grepl('^CartoDB', .))
+
+
+CartoDB %>% 
+  purrr::walk(function(x) m  <<- m %>% addProviderTiles(x, group = x) )
+
+cities <- poblacion %>% 
+  filter(benef > 1000000)
+
+m %>% 
+  addLayersControl(
+    baseGroups = names(CartoDB),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>% 
+  addCircleMarkers(data = cities,
+    radius = ~benef/1000000,
+                   label = ~dist,
+                   color = "white",
+                   opacity = 0.6,
+                   fill = TRUE,
+                   fillColor = "magenta",
+                   fillOpacity = 0.9, 
+                   popup = ~paste("Ciudad : ", dist,
+                                  "\n",
+                                  "Poblacion :", benef))
+  
+```
+
+
+NASA
+================================================================================
+```{r MapasNasa}
+
+poblacion %>% 
+  filter(dist == "Lima") %>% 
+  leaflet() %>% 
+  addProviderTiles(providers$OpenStreetMap) %>% 
+  addMarkers(label = "Proyectos") %>% 
+  setView(lng = -77.1112382267479, lat = -12.02178305, zoom = 3.2)
+
+
+
+
+```
+
+
+
+
+
